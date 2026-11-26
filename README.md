@@ -20,7 +20,7 @@ The web service and PostgreSQL both use Render Free. IMPORTANT: Free Postgres ha
 - Only SHA-256 key hashes are stored; the full key is displayed once.
 
 ## Source package
-The application source is stored in `aki-source.tgz.b64`. The Render build command extracts it before installing dependencies. The bundle is base64-encoded gzip/tar, not encryption.
+The application source is stored as four verified base64 chunks (`source-01.b64` through `source-04.b64`). Render concatenates and extracts them during build. This packaging is only transport encoding, not encryption.
 
 ## Python client
 After deployment, update `AKI_LICENSE_API` in `aki_license_client_snippet.py` to:
