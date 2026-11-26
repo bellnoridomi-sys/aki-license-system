@@ -4,9 +4,7 @@ services:
     runtime: python
     plan: free
     region: singapore
-    buildCommand: >-
-      python -c 'import base64,gzip,io,tarfile,pathlib; tarfile.open(fileobj=io.BytesIO(gzip.decompress(base64.b64decode(pathlib.Path("aki-source.tgz.b64").read_text()))), mode="r:").extractall(".")'
-      && pip install -r requirements.txt
+    buildCommand: cat source-*.b64 | base64 -d | tar -xz && pip install -r requirements.txt
     startCommand: gunicorn --workers 1 --threads 4 --timeout 120 app:app
     healthCheckPath: /healthz
     autoDeployTrigger: commit
