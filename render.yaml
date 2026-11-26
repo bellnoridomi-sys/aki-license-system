@@ -27,6 +27,6 @@ services:
 databases:
   - name: aki-license-db
     databaseName: aki_license
-    plan: basic-256mb
+    plan: free
     region: singapore
     postgresMajorVersion: "18"
