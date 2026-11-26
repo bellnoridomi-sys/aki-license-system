@@ -9,7 +9,7 @@ Flask online-license API + admin dashboard + PostgreSQL deployment for Render.
 4. Review the recurring PostgreSQL Basic charge before applying.
 5. After deployment is live, open `/admin/login`.
 
-The web service uses Render Free (may spin down after inactivity). PostgreSQL uses Basic so license data is not stored on Render's expiring Free database tier.
+The web service and PostgreSQL both use Render Free. IMPORTANT: Free Postgres has a 1 GB storage limit, no backups, and expires 30 days after creation. After expiry, it is inaccessible unless upgraded; after a further 14-day grace period, Render deletes it and all license records. This setup is for a temporary test only. Export or migrate the database before expiry. The Free web service also spins down after 15 minutes without inbound traffic and can take about a minute to wake.
 
 ## Features
 - Generate 7 / 10 / 30-day or custom licenses (1–3650 days).
