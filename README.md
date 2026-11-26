@@ -1,26 +1,48 @@
 # AKI License System
 
-Flask license API + admin dashboard + PostgreSQL deployment for Render.
-
-This repository contains no production credentials. Configure all admin credentials and session secrets through Render Environment Variables.
+Flask online-license API + admin dashboard + PostgreSQL deployment for Render.
 
 ## Deploy
-1. Open Render and create a Blueprint from this repository.
-2. Review the web service and PostgreSQL plan shown by Render.
-3. Set the requested `AKI_ADMIN_USERNAME` and `AKI_ADMIN_PASSWORD` values in Render.
-4. Apply only after reviewing the recurring database cost.
-5. Once live, open `/admin/login`.
+1. Create a Render Blueprint from this repository.
+2. Review the proposed web service and PostgreSQL resource.
+3. Enter `AKI_ADMIN_USERNAME` and `AKI_ADMIN_PASSWORD` during initial Blueprint setup.
+4. Review the recurring PostgreSQL Basic charge before applying.
+5. After deployment is live, open `/admin/login`.
 
-The web service is configured on the Free plan. PostgreSQL uses Basic storage so license records are not on the 30-day expiring Free database tier.
+The web service uses Render Free (may spin down after inactivity). PostgreSQL uses Basic so license data is not stored on Render's expiring Free database tier.
 
-## License behavior
-- Keys are generated only by the server and stored as SHA-256 hashes.
-- Key expiry starts on first successful activation.
-- Each key is bound to the first device ID that activates it.
-- Every client launch must verify online.
-- Admin can revoke a key at any time.
+## Features
+- Generate 7 / 10 / 30-day or custom licenses (1–3650 days).
+- Expiration starts on first successful activation.
+- One license is bound to the first device ID that activates it.
+- Online verification is required each time the client starts.
+- Admin can search, view status, and revoke keys.
+- Only SHA-256 key hashes are stored; the full key is displayed once.
 
-## Security
-Use a unique strong admin password. Never add `.env`, database URLs, session secrets, or credentials to Git. The Python client contains no key-generation secret.
+## Source package
+The application source is stored in `aki-source.tgz.b64`. The Render build command extracts it before installing dependencies. The bundle is base64-encoded gzip/tar, not encryption.
 
-See `render.yaml` for infrastructure configuration.
+## Python client
+After deployment, update `AKI_LICENSE_API` in `aki_license_client_snippet.py` to:
+`https://YOUR-RENDER-SERVICE.onrender.com/api/verify`
+
+Paste the client snippet near the top of your protected Python program. Keep admin credentials, database URLs, and session secrets on the server only.
+
+## Local development
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+$env:AKI_SESSION_SECRET = "set-a-long-random-value"
+$env:AKI_ADMIN_USERNAME = "admin"
+$env:AKI_ADMIN_PASSWORD = "use-a-strong-unique-password"
+$env:AKI_COOKIE_SECURE = "false"
+py app.py
+```
+Open `http://127.0.0.1:10000/admin/login`.
+
+## Security notes
+- The repository currently contains no production credentials. Do not commit `.env`, service secrets, or database URLs.
+- Make the repository Private in GitHub Settings if you prefer to restrict source visibility.
+- The local device ID file can be copied by a determined user; this is a basic one-device binding, not hardware attestation.
+- Client-side Python cannot be made impossible to reverse engineer. Server-side verification protects the key-generation secret, but cannot stop a skilled attacker from patching their local program.
