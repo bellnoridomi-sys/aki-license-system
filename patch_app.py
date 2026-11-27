@@ -123,7 +123,7 @@ html,body{background:#030303!important;color:#f8f8f6!important}
                 page = re.sub(r"(<body\b[^>]*>)", lambda match: match.group(1) + backdrop, page, count=1, flags=re.IGNORECASE)
 
             global_css = '<link rel="stylesheet" href="' + url_for("static", filename="aki-global-theme.css") + '?v=20261127">'
-            global_js = '<script defer src="' + url_for("static", filename="aki-global-effects.js") + '?v=20261127"></script>'
+            global_js = '<script defer src="' + url_for("static", filename="aki-global-effects.js") + '?v=20261127-glass"></script>'
             if "aki-global-theme.css" not in page:
                 if "</head>" in page.lower():
                     page = re.sub(r"</head>", lambda _m: global_css + "</head>", page, count=1, flags=re.IGNORECASE)
