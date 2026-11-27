@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 
 APP = Path("app.py")
@@ -81,7 +82,7 @@ replace_once(
             page = response.get_data(as_text=True)
             if request.path in ("/admin", "/admin/keys/create"):
                 select_match = re.search(
-                    r'<select\b[^>]*\bid\s*=\s*["\']plan-select["\'][^>]*>',
+                    r'<select\\b[^>]*\\bid\\s*=\\s*"plan-select"[^>]*>',
                     page,
                     flags=re.IGNORECASE,
                 )
@@ -253,6 +254,7 @@ replace_once(
 "permanent API verification",
 )
 
+ast.parse(source)  # Fail the build instead of deploying invalid patched Python.
 APP.write_text(source, encoding="utf-8")
 
 client = Path("aki_license_client_snippet.py")
