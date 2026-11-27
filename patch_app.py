@@ -120,7 +120,7 @@ html,body{background:#030303!important;color:#f8f8f6!important}
                     '<i class="aki-fog aki-fog-a"></i><i class="aki-fog aki-fog-b"></i><i class="aki-fog aki-fog-c"></i>'
                     '<span class="aki-grain"></span><span class="aki-scanline"></span></div>'
                 )
-                page = re.sub(r"(<body\\b[^>]*>)", lambda match: match.group(1) + backdrop, page, count=1, flags=re.IGNORECASE)
+                page = re.sub(r"(<body\b[^>]*>)", lambda match: match.group(1) + backdrop, page, count=1, flags=re.IGNORECASE)
 
             global_css = '<link rel="stylesheet" href="' + url_for("static", filename="aki-global-theme.css") + '?v=20261127">'
             global_js = '<script defer src="' + url_for("static", filename="aki-global-effects.js") + '?v=20261127"></script>'
