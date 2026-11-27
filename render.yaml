@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     region: singapore
-    buildCommand: cat source-*.b64 | base64 -d | tar -xz && pip install -r requirements.txt
+    buildCommand: cat source-*.b64 | base64 -d | tar -xz && python patch_app.py && pip install -r requirements.txt
     startCommand: gunicorn --workers 1 --threads 4 --timeout 120 app:app
     healthCheckPath: /healthz
     autoDeployTrigger: commit
