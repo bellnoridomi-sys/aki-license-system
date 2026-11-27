@@ -308,12 +308,34 @@ replace_once(
 "AKI dashboard stats and Discord contact components",
 )
 
-source += """
-
-# AKI manual-payment storefront (account + Discord DM).
-from aki_shop_extension import register_aki_shop
-register_aki_shop(app, License, utcnow)
-"""
+tree = ast.parse(source)
+factory = next(
+    (
+        node for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "create_app"
+    ),
+    None,
+)
+if factory is None:
+    raise SystemExit("AKI storefront patch aborted: create_app() was not found.")
+returns = [
+    node for node in ast.walk(factory)
+    if isinstance(node, ast.Return)
+    and isinstance(node.value, ast.Name)
+    and node.value.id == "app"
+]
+if not returns:
+    raise SystemExit("AKI storefront patch aborted: create_app() does not return app.")
+return_node = max(returns, key=lambda node: node.lineno)
+source_lines = source.splitlines(keepends=True)
+indent = source_lines[return_node.lineno - 1][:len(source_lines[return_node.lineno - 1]) - len(source_lines[return_node.lineno - 1].lstrip())]
+insertion = (
+    indent + "from aki_shop_extension import register_aki_shop\n"
+    + indent + "register_aki_shop(app, License, utcnow)\n"
+)
+source_lines.insert(return_node.lineno - 1, insertion)
+source = "".join(source_lines)
 ast.parse(source)
 
 APP.write_text(source, encoding="utf-8")

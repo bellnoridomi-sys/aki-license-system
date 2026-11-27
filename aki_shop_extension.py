@@ -21,8 +21,6 @@ def register_aki_shop(app, License, utcnow):
     """Add the manual-payment storefront without changing existing license APIs."""
     registry = inspect(License).registry
     Base = registry.generate_base()
-    db_session = License.query.session
-
     class AKIShopCustomer(Base):
         __tablename__ = "aki_shop_customers"
         id = Column(Integer, primary_key=True)
