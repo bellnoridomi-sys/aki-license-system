@@ -308,7 +308,7 @@ replace_once(
 "AKI dashboard stats and Discord contact components",
 )
 
-APP.write_text(source, encoding="utf-8")
+source += """\n\n# AKI manual-payment storefront (account + Discord DM).\nfrom aki_shop_extension import register_aki_shop\nregister_aki_shop(app, db, License, utcnow)\n"""\nast.parse(source)\n\nAPP.write_text(source, encoding="utf-8")
 
 client = Path("aki_license_client_snippet.py")
 if client.exists():
