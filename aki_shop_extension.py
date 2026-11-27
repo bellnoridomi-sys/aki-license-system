@@ -47,8 +47,11 @@ def register_aki_shop(app, License, utcnow):
         discord_dm_status = Column(String(32), nullable=True)
 
     with app.app_context():
-        db_session = License.query.session
-        Base.metadata.create_all(bind=db_session.get_bind())
+        Base.metadata.create_all(bind=License.query.session.get_bind())
+
+    def _db_session():
+        # Resolve Flask-SQLAlchemy's scoped session for the current request context.
+        return License.query.session
 
     plans = {
         "7d": {"days": 7, "price": 5000, "name": "7 ngày"},
@@ -56,6 +59,7 @@ def register_aki_shop(app, License, utcnow):
         "forever": {"days": 0, "price": 80000, "name": "Vĩnh viễn"},
     }
     qr_page_url = "https://ibb.co/Ps7bJrJ8"
+    qr_image_url = os.environ.get("AKI_PAYMENT_QR_IMAGE_URL", "").strip()
 
     BASE = """
 <!doctype html>
@@ -138,7 +142,7 @@ button,input{font:inherit}
         if not customer_id:
             return None
         try:
-            return db_session.get(AKIShopCustomer, int(customer_id))
+            return _db_session().get(AKIShopCustomer, int(customer_id))
         except Exception:
             session.pop("aki_shop_customer_id", None)
             return None
@@ -155,7 +159,7 @@ button,input{font:inherit}
         return render_template_string(BASE, title=title, content=Markup(rendered), customer=customer)
 
     def _owned_order(order_id, customer):
-        order = db_session.query(AKIShopOrder).filter_by(id=order_id, customer_id=customer.id).first()
+        order = _db_session().query(AKIShopOrder).filter_by(id=order_id, customer_id=customer.id).first()
         if order is None:
             abort(404)
         return order
@@ -204,6 +208,12 @@ button,input{font:inherit}
         req = urllib.request.Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
         with urllib.request.urlopen(req, timeout=15) as response:
             return json.loads(response.read().decode("utf-8"))
+
+    @app.before_request
+    def aki_store_root_redirect():
+        # Send visitors to the storefront instead of the admin login screen.
+        if request.path == "/":
+            return redirect(url_for("aki_store_home"))
 
     @app.get("/store")
     @app.get("/store/")
@@ -257,12 +267,12 @@ button,input{font:inherit}
         if len(password) < 8:
             flash("Mật khẩu cần ít nhất 8 ký tự.")
             return redirect(url_for("aki_store_register"))
-        if db_session.query(AKIShopCustomer).filter(func.lower(AKIShopCustomer.username) == username.lower()).first():
+        if _db_session().query(AKIShopCustomer).filter(func.lower(AKIShopCustomer.username) == username.lower()).first():
             flash("Tên tài khoản đã được sử dụng.")
             return redirect(url_for("aki_store_register"))
         customer = AKIShopCustomer(username=username, password_hash=generate_password_hash(password))
-        db_session.add(customer)
-        db_session.commit()
+        _db_session().add(customer)
+        _db_session().commit()
         session.clear()
         session["aki_shop_customer_id"] = customer.id
         session["_csrf_token"] = secrets.token_urlsafe(32)
@@ -288,7 +298,7 @@ button,input{font:inherit}
     def aki_store_login_post():
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
-        customer = db_session.query(AKIShopCustomer).filter(func.lower(AKIShopCustomer.username) == username.lower()).first()
+        customer = _db_session().query(AKIShopCustomer).filter(func.lower(AKIShopCustomer.username) == username.lower()).first()
         if customer is None or not check_password_hash(customer.password_hash, password):
             flash("Tên tài khoản hoặc mật khẩu không đúng.")
             return redirect(url_for("aki_store_login"))
@@ -321,8 +331,8 @@ button,input{font:inherit}
             amount_vnd=plan["price"],
             status="pending",
         )
-        db_session.add(order)
-        db_session.commit()
+        _db_session().add(order)
+        _db_session().commit()
         return redirect(url_for("aki_store_order_detail", order_id=order.id))
 
     @app.get("/store/orders")
@@ -330,7 +340,7 @@ button,input{font:inherit}
         customer = _customer()
         if customer is None:
             return redirect(url_for("aki_store_login"))
-        rows = db_session.query(AKIShopOrder).filter_by(customer_id=customer.id).order_by(AKIShopOrder.created_at.desc()).all()
+        rows = _db_session().query(AKIShopOrder).filter_by(customer_id=customer.id).order_by(AKIShopOrder.created_at.desc()).all()
         labels = {"pending": "Chưa báo chuyển khoản", "reported": "Chờ admin xác nhận", "paid": "Đã thanh toán · Đã cấp key", "rejected": "Đơn bị từ chối"}
         inner = """
 <section class="aki-shop-panel" style="max-width:900px">
@@ -369,7 +379,7 @@ button,input{font:inherit}
 <p class="aki-shop-muted">Đơn này đã bị từ chối. Liên hệ AKI DEV nếu bro cần kiểm tra lại.</p>
 {% else %}
 <div class="aki-shop-qr">
-<div class="aki-shop-qrmark">QR ZaloPay</div>
+{% if qr_image_url %}<img src="{{ qr_image_url }}" alt="QR thanh toán ZaloPay" style="display:block;width:min(100%,300px);height:auto;margin:0 auto 14px;border-radius:14px;background:#fff;padding:8px">{% else %}<div class="aki-shop-qrmark">QR ZaloPay</div>{% endif %}
 <p class="aki-shop-muted">Quét mã QR của AKI để chuyển đúng số tiền và nhập đúng nội dung chuyển khoản bên dưới.</p>
 <a class="aki-shop-btn primary" href="{{ qr_page_url }}" target="_blank" rel="noopener">Mở ảnh QR thanh toán</a>
 </div>
@@ -390,7 +400,7 @@ button,input{font:inherit}
 </section>
 """
         labels = {"pending": "Chưa báo chuyển khoản", "reported": "Chờ admin xác nhận", "paid": "Đã thanh toán · Đã cấp key", "rejected": "Đơn bị từ chối"}
-        return _page("Chi tiết đơn", inner, order=order, labels=labels, money=_money, qr_page_url=qr_page_url)
+        return _page("Chi tiết đơn", inner, order=order, labels=labels, money=_money, qr_page_url=qr_page_url, qr_image_url=qr_image_url)
 
     @app.post("/store/orders/<int:order_id>/report")
     def aki_store_report_payment(order_id):
@@ -404,7 +414,7 @@ button,input{font:inherit}
         order.payment_ref = (request.form.get("payment_ref") or "").strip()[:120] or None
         order.status = "reported"
         order.reported_at = utcnow()
-        db_session.commit()
+        _db_session().commit()
         flash("Đã gửi thông báo. Key sẽ được cấp sau khi admin kiểm tra tiền vào ví.")
         return redirect(url_for("aki_store_order_detail", order_id=order.id))
 
@@ -494,13 +504,13 @@ button,input{font:inherit}
             discord_id = str(profile.get("id", ""))
             if not discord_id:
                 raise ValueError("Discord did not return a user ID.")
-            duplicate = db_session.query(AKIShopCustomer).filter_by(discord_id=discord_id).first()
+            duplicate = _db_session().query(AKIShopCustomer).filter_by(discord_id=discord_id).first()
             if duplicate and duplicate.id != customer.id:
                 flash("Discord này đã được liên kết với một tài khoản AKI khác.")
                 return redirect(url_for("aki_store_account"))
             customer.discord_id = discord_id
             customer.discord_name = profile.get("global_name") or profile.get("username") or discord_id
-            db_session.commit()
+            _db_session().commit()
             flash("Đã liên kết Discord thành công.")
         except Exception:
             app.logger.exception("AKI Discord OAuth callback failed")
@@ -511,7 +521,7 @@ button,input{font:inherit}
     def aki_admin_orders():
         if session.get("admin_logged_in") is not True:
             abort(403)
-        rows = db_session.query(AKIShopOrder).order_by(AKIShopOrder.created_at.desc()).limit(200).all()
+        rows = _db_session().query(AKIShopOrder).order_by(AKIShopOrder.created_at.desc()).limit(200).all()
         inner = """
 <section class="aki-shop-panel" style="max-width:1050px">
 <div class="aki-shop-eyebrow">PAYMENT REVIEW</div><h1>Đơn mua license</h1>
@@ -542,14 +552,14 @@ button,input{font:inherit}
         labels = {"pending": "Chưa báo chuyển khoản", "reported": "Khách báo đã chuyển", "paid": "Đã cấp key", "rejected": "Đã từ chối"}
         # Attach the customer object for the template without creating ORM relationships.
         for order in rows:
-            order.customer = db_session.get(AKIShopCustomer, order.customer_id)
+            order.customer = _db_session().get(AKIShopCustomer, order.customer_id)
         return _page("Duyệt đơn hàng", inner, rows=rows, labels=labels, money=_money)
 
     @app.post("/admin/orders/<int:order_id>/action")
     def aki_admin_order_action(order_id):
         if session.get("admin_logged_in") is not True:
             abort(403)
-        order = db_session.get(AKIShopOrder, order_id)
+        order = _db_session().get(AKIShopOrder, order_id)
         if order is None:
             abort(404)
         action = request.form.get("action")
@@ -561,12 +571,12 @@ button,input{font:inherit}
             return redirect(url_for("aki_admin_orders"))
         if action == "reject":
             order.status = "rejected"
-            db_session.commit()
+            _db_session().commit()
             flash("Đã từ chối đơn hàng.")
             return redirect(url_for("aki_admin_orders"))
         if action != "approve":
             abort(400)
-        customer = db_session.get(AKIShopCustomer, order.customer_id)
+        customer = _db_session().get(AKIShopCustomer, order.customer_id)
         if customer is None:
             abort(400)
         license_key = "AKI-" + secrets.token_hex(5).upper() + "-" + secrets.token_hex(5).upper()
@@ -581,15 +591,15 @@ button,input{font:inherit}
             expires_at=None,
         )
         try:
-            db_session.add(item)
-            db_session.flush()
+            _db_session().add(item)
+            _db_session().flush()
             order.license_id = item.id
             order.issued_key = license_key
             order.status = "paid"
             order.paid_at = utcnow()
-            db_session.commit()
+            _db_session().commit()
         except Exception:
-            db_session.rollback()
+            _db_session().rollback()
             app.logger.exception("AKI failed to issue license for order %s", order.order_code)
             flash("Không thể tạo key. Hãy kiểm tra log và thử lại.")
             return redirect(url_for("aki_admin_orders"))
@@ -601,7 +611,7 @@ button,input{font:inherit}
             "Key bắt đầu tính hạn từ lần kích hoạt đầu tiên."
         )
         order.discord_dm_status = _send_discord_dm(customer.discord_id, dm_text) if customer.discord_id else "not_linked"
-        db_session.commit()
+        _db_session().commit()
         flash("Đã xác nhận thanh toán và tạo license. Key đã lưu trong tài khoản khách.")
         return redirect(url_for("aki_admin_orders"))
 
