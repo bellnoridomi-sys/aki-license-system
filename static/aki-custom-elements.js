@@ -20,7 +20,7 @@
       number.setAttribute("aria-hidden", "true");
 
       for (const character of value) {
-        if (/\\d/.test(character)) {
+        if (/\d/.test(character)) {
           const column = document.createElement("span");
           column.className = "u426-col";
           const reel = document.createElement("span");
