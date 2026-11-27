@@ -5,7 +5,35 @@
   const coarse = window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 760;
   const body = document.body;
   if (!body) return;
-  body.classList.add("aki-page-ready");
+
+  body.classList.add("aki-page-ready", "aki-glass-control");
+  const glassSelector = ".sidebar,.topbar,.navbar,.nav,.panel,.card,.stat-card,.feature-card,.key-card,.table-wrap,.table-container,.form-card,.content-card,.login-card,.dashboard-card,[class$='-panel'],[class$='-card'],.aki-v2-toolbar,.aki-v2-timeline,.aki-v2-command,.aki-v2-drawer";
+  const glassNodes = Array.from(document.querySelectorAll(glassSelector))
+    .filter((el) => !el.closest(".aki-global-backdrop") && !el.classList.contains("aki-v2-command-item"));
+  glassNodes.forEach((el) => {
+    el.classList.add("aki-glass-panel");
+    if (el.matches(".sidebar,.navbar,.nav")) el.classList.add("aki-glass-sidebar", "aki-glass-nav");
+    if (el.matches(".topbar")) el.classList.add("aki-glass-topbar");
+    if (el.matches(".card,.stat-card,.feature-card,.key-card,.dashboard-card,[class$='-card']")) el.classList.add("aki-glass-interactive");
+    if (!reduced && window.matchMedia("(hover:hover) and (pointer:fine)").matches) {
+      let frame = 0;
+      el.addEventListener("pointermove", (event) => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+          const rect = el.getBoundingClientRect();
+          const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100));
+          const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / Math.max(rect.height, 1)) * 100));
+          el.style.setProperty("--aki-glass-x", x.toFixed(1) + "%");
+          el.style.setProperty("--aki-glass-y", y.toFixed(1) + "%");
+          frame = 0;
+        });
+      }, {passive:true});
+      el.addEventListener("pointerleave", () => {
+        el.style.setProperty("--aki-glass-x", "12%");
+        el.style.setProperty("--aki-glass-y", "0%");
+      }, {passive:true});
+    }
+  });
   const revealTargets = Array.from(document.querySelectorAll(".panel,.card,.stat-card,.table-wrap,.table-container,.feature-card,.key-card,.metric-card,.command-item,.login-gate"))
     .filter((el) => !el.closest("[hidden]") && !el.hasAttribute("hidden"));
   revealTargets.forEach((el, index) => {
