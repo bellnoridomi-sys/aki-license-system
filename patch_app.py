@@ -81,7 +81,7 @@ replace_once(
             page = response.get_data(as_text=True)
             if request.path in ("/admin", "/admin/keys/create"):
                 select_match = re.search(
-                    r'<select\\\\b[^>]*\\\\bid\\\\s*=\\\\s*["\\\\']plan-select["\\\\'][^>]*>',
+                    r'<select\b[^>]*\bid\s*=\s*["\']plan-select["\'][^>]*>',
                     page,
                     flags=re.IGNORECASE,
                 )
