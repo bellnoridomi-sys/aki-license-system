@@ -6,7 +6,7 @@
   const body = document.body;
   if (!body) return;
 
-  body.classList.add("aki-page-ready", "aki-glass-control");
+  body.classList.add("aki-page-ready", "aki-glass-control", "aki-refined-glass");
   const glassSelector = ".sidebar,.topbar,.navbar,.nav,.panel,.card,.stat-card,.feature-card,.key-card,.table-wrap,.table-container,.form-card,.content-card,.login-card,.dashboard-card,[class$='-panel'],[class$='-card'],.aki-v2-toolbar,.aki-v2-timeline,.aki-v2-command,.aki-v2-drawer";
   const glassNodes = Array.from(document.querySelectorAll(glassSelector))
     .filter((el) => !el.closest(".aki-global-backdrop") && !el.classList.contains("aki-v2-command-item"));
@@ -15,7 +15,7 @@
     if (el.matches(".sidebar,.navbar,.nav")) el.classList.add("aki-glass-sidebar", "aki-glass-nav");
     if (el.matches(".topbar")) el.classList.add("aki-glass-topbar");
     if (el.matches(".card,.stat-card,.feature-card,.key-card,.dashboard-card,[class$='-card']")) el.classList.add("aki-glass-interactive");
-    if (!reduced && window.matchMedia("(hover:hover) and (pointer:fine)").matches) {
+    if (!reduced && !body.classList.contains("aki-refined-glass") && window.matchMedia("(hover:hover) and (pointer:fine)").matches) {
       let frame = 0;
       el.addEventListener("pointermove", (event) => {
         if (frame) return;
@@ -34,7 +34,7 @@
       }, {passive:true});
     }
   });
-  const revealTargets = Array.from(document.querySelectorAll(".panel,.card,.stat-card,.table-wrap,.table-container,.feature-card,.key-card,.metric-card,.command-item,.login-gate"))
+  const revealTargets = body.classList.contains("aki-refined-glass") ? [] : Array.from(document.querySelectorAll(".panel,.card,.stat-card,.table-wrap,.table-container,.feature-card,.key-card,.metric-card,.command-item,.login-gate"))
     .filter((el) => !el.closest("[hidden]") && !el.hasAttribute("hidden"));
   revealTargets.forEach((el, index) => {
     el.classList.add("aki-reveal");
@@ -48,7 +48,7 @@
     }), { threshold: .08, rootMargin: "0px 0px -36px 0px" });
     revealTargets.forEach((el) => observer.observe(el));
   }
-  if (!coarse && !reduced && window.matchMedia("(hover:hover)").matches) {
+  if (!coarse && !reduced && !body.classList.contains("aki-refined-glass") && window.matchMedia("(hover:hover)").matches) {
     const glow = document.createElement("div");
     glow.className = "aki-cursor-glow"; glow.setAttribute("aria-hidden", "true"); body.appendChild(glow);
     let x = -300, y = -300, raf = 0;
@@ -60,7 +60,7 @@
   }
   const canvas = document.getElementById("aki-space");
   const ctx = canvas && canvas.getContext ? canvas.getContext("2d", { alpha: true }) : null;
-  if (canvas && ctx && !coarse) {
+  if (canvas && ctx && !coarse && !body.classList.contains("aki-refined-glass")) {
     let width = 0, height = 0, dpr = 1, raf = 0, lastFrame = 0, visible = !document.hidden, wind = 0, particles = [];
     const seed = () => {
       const count = Math.min(90, Math.max(34, Math.round(width / 14)));
@@ -92,7 +92,7 @@
     if(!reduced&&window.matchMedia("(hover:hover)").matches)window.addEventListener("pointermove",(event)=>{wind=(event.clientX/Math.max(width,1)-.5)*2;},{passive:true});
     start();
   }
-  if(!coarse&&!reduced)Array.from(document.querySelectorAll(".aki-uv-card,.u426-cd,.stat-card")).forEach((el)=>{
+  if(!coarse&&!reduced&&!body.classList.contains("aki-refined-glass"))Array.from(document.querySelectorAll(".aki-uv-card,.u426-cd,.stat-card")).forEach((el)=>{
     el.classList.add("aki-tilt");
     el.addEventListener("pointermove",(event)=>{
       const r=el.getBoundingClientRect(),nx=(event.clientX-r.left)/Math.max(r.width,1)-.5,ny=(event.clientY-r.top)/Math.max(r.height,1)-.5;

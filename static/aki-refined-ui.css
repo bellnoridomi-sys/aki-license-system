@@ -1,0 +1,61 @@
+/* AKI refined glass UI — natural, restrained, photo-led */
+:root{
+  --aki-glass-fill:rgba(12,12,12,.34);
+  --aki-glass-edge:rgba(255,255,255,.15);
+  --aki-glass-blur:14px;
+}
+.aki-global-backdrop{
+  background-image:
+    linear-gradient(180deg,rgba(3,3,3,.36) 0%,rgba(3,3,3,.48) 48%,rgba(3,3,3,.62) 100%),
+    url("https://i.pinimg.com/1200x/18/d2/d1/18d2d1777738a20aa5c38a681e973388.jpg")!important;
+  background-position:center center!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+  background-attachment:scroll!important;
+}
+#aki-space,.aki-watermark,.aki-fog,.aki-scanline{display:none!important}
+.aki-grain{opacity:.018!important}
+body.aki-refined-glass,body.aki-refined-glass .app,body.aki-refined-glass .main,body.aki-refined-glass .main-content{background:transparent!important}
+body.aki-refined-glass .aki-glass-panel{
+  background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012) 55%,rgba(0,0,0,.035)),rgba(11,11,11,.34)!important;
+  border:1px solid rgba(255,255,255,.145)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 14px 42px rgba(0,0,0,.24)!important;
+  backdrop-filter:blur(var(--aki-glass-blur)) saturate(118%)!important;
+  -webkit-backdrop-filter:blur(var(--aki-glass-blur)) saturate(118%)!important;
+  transition:border-color .22s ease,background-color .22s ease,box-shadow .22s ease!important;
+}
+body.aki-refined-glass .aki-glass-panel.aki-glass-interactive{background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),rgba(11,11,11,.31)!important}
+body.aki-refined-glass .aki-glass-panel.aki-glass-interactive:hover{border-color:rgba(255,255,255,.22)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 18px 48px rgba(0,0,0,.29)!important}
+body.aki-refined-glass .aki-glass-sidebar{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.008)),rgba(7,7,7,.52)!important;border-color:rgba(255,255,255,.13)!important;box-shadow:inset -1px 0 rgba(255,255,255,.025),12px 0 34px rgba(0,0,0,.18)!important}
+body.aki-refined-glass .aki-glass-topbar{background:linear-gradient(100deg,rgba(255,255,255,.045),rgba(255,255,255,.012)),rgba(8,8,8,.39)!important;border-color:rgba(255,255,255,.14)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 10px 30px rgba(0,0,0,.18)!important}
+body.aki-refined-glass .aki-glass-panel thead th{background:rgba(255,255,255,.045)!important;box-shadow:inset 0 -1px 0 rgba(255,255,255,.075)!important}
+body.aki-refined-glass .aki-glass-panel tbody tr:hover td{background:rgba(255,255,255,.035)!important}
+body.aki-refined-glass .aki-glass-panel input,body.aki-refined-glass .aki-glass-panel select,body.aki-refined-glass .aki-glass-panel textarea,body.aki-refined-glass .aki-glass-panel .form-control,body.aki-refined-glass input,body.aki-refined-glass select,body.aki-refined-glass textarea{
+  background:rgba(0,0,0,.24)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+body.aki-refined-glass input:focus,body.aki-refined-glass select:focus,body.aki-refined-glass textarea:focus{background:rgba(0,0,0,.34)!important;border-color:rgba(255,255,255,.31)!important;box-shadow:0 0 0 3px rgba(255,255,255,.055)!important}
+body.aki-refined-glass button:not(.aki-v2-command-item),body.aki-refined-glass .btn,body.aki-refined-glass .button,body.aki-refined-glass input[type="submit"],body.aki-refined-glass input[type="button"]{
+  min-height:38px;padding:9px 17px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:999px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.055))!important;color:#f4f4f1!important;
+  font-weight:600!important;letter-spacing:0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 5px 16px rgba(0,0,0,.16)!important;
+  backdrop-filter:blur(12px) saturate(120%);-webkit-backdrop-filter:blur(12px) saturate(120%);
+  transform:none;transition:background .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease!important;
+}
+body.aki-refined-glass button:not(.aki-v2-command-item):hover,body.aki-refined-glass .btn:hover,body.aki-refined-glass .button:hover,body.aki-refined-glass input[type="submit"]:hover,body.aki-refined-glass input[type="button"]:hover{
+  background:rgba(255,255,255,.17)!important;border-color:rgba(255,255,255,.34)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 8px 20px rgba(0,0,0,.2)!important;transform:translateY(-1px);
+}
+body.aki-refined-glass button:not(.aki-v2-command-item):active,body.aki-refined-glass .btn:active,body.aki-refined-glass .button:active{transform:scale(.985)}
+body.aki-refined-glass button.aki-v2-btn-primary,body.aki-refined-glass .aki-uv-discord{background:linear-gradient(145deg,rgba(255,255,255,.20),rgba(255,255,255,.085))!important;color:#fff!important;border-color:rgba(255,255,255,.32)!important}
+body.aki-refined-glass .aki-glass-nav a,body.aki-refined-glass .aki-glass-nav button{min-height:unset;padding:10px 13px!important;border-radius:13px!important;background:transparent!important;box-shadow:none!important;transform:none!important}
+body.aki-refined-glass .aki-glass-nav a:hover,body.aki-refined-glass .aki-glass-nav button:hover,body.aki-refined-glass .aki-glass-nav .active,body.aki-refined-glass .aki-glass-nav [aria-current="page"]{background:rgba(255,255,255,.075)!important;border-color:rgba(255,255,255,.11)!important}
+body.aki-refined-glass .aki-v2-command-item{min-height:unset!important;padding:11px 12px!important;border-radius:12px!important;background:transparent!important;box-shadow:none!important}
+body.aki-refined-glass .aki-v2-command-item:hover{background:rgba(255,255,255,.07)!important}
+body.aki-refined-glass .aki-v2-shortcut{min-height:unset!important;padding:9px 13px!important;border-radius:999px!important;background:rgba(14,14,14,.48)!important}
+body.aki-refined-glass .aki-v2-drawer,body.aki-refined-glass .aki-v2-command{background:rgba(12,12,12,.74)!important;border-color:rgba(255,255,255,.16)!important;box-shadow:0 24px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.09)!important;backdrop-filter:blur(22px) saturate(125%)!important;-webkit-backdrop-filter:blur(22px) saturate(125%)!important}
+body.aki-refined-glass .aki-v2-admin-mark{display:none!important}
+body.aki-refined-glass .aki-v2-section-title,body.aki-refined-glass h1,body.aki-refined-glass h2,body.aki-refined-glass h3{text-shadow:none!important;letter-spacing:-.025em}
+body.aki-refined-glass .aki-uv-blob{opacity:.16!important;filter:blur(30px)!important}
+body.aki-refined-glass .aki-cursor-glow{display:none!important}
+body.aki-refined-glass main,body.aki-refined-glass #app,body.aki-refined-glass .dashboard-shell{animation:none!important}
+@media(max-width:760px){body.aki-refined-glass .aki-global-backdrop{background-attachment:scroll!important;background-position:center center!important}body.aki-refined-glass .aki-glass-panel{backdrop-filter:blur(11px)!important;-webkit-backdrop-filter:blur(11px)!important}}
+@media(prefers-reduced-motion:reduce){body.aki-refined-glass *,body.aki-refined-glass *::before,body.aki-refined-glass *::after{animation:none!important;transition:none!important}}
