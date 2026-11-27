@@ -281,6 +281,19 @@ replace_once(
                     page = re.sub(r"</body>", lambda _m: addon + "</body>", page, count=1, flags=re.IGNORECASE)
                 else:
                     page += addon
+            if (request.path == "/admin" or request.path.startswith("/admin/")) and request.path != "/admin/login":
+                admin_v2_css = '<link rel="stylesheet" href="' + url_for("static", filename="aki-admin-v2.css") + '?v=20261127-v2">'
+                admin_v2_js = '<script defer src="' + url_for("static", filename="aki-admin-v2.js") + '?v=20261127-v2"></script>'
+                if "aki-admin-v2.css" not in page:
+                    if "</head>" in page.lower():
+                        page = re.sub(r"</head>", lambda _m: admin_v2_css + "</head>", page, count=1, flags=re.IGNORECASE)
+                    else:
+                        page = admin_v2_css + page
+                if "aki-admin-v2.js" not in page:
+                    if "</body>" in page.lower():
+                        page = re.sub(r"</body>", lambda _m: admin_v2_js + "</body>", page, count=1, flags=re.IGNORECASE)
+                    else:
+                        page += admin_v2_js
             response.set_data(page)
         return response
 
