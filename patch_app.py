@@ -294,7 +294,7 @@ replace_once(
                         page = re.sub(r"</body>", lambda _m: admin_v2_js + "</body>", page, count=1, flags=re.IGNORECASE)
                     else:
                         page += admin_v2_js
-            refined_css = '<link rel="stylesheet" href="' + url_for("static", filename="aki-refined-ui.css") + '?v=20261127-refined">'
+            refined_css = '<link rel="stylesheet" href="' + url_for("static", filename="aki-refined-ui.css") + '?v=20261127-photo-glass-v2">'
             if "aki-refined-ui.css" not in page:
                 if "</head>" in page.lower():
                     page = re.sub(r"</head>", lambda _m: refined_css + "</head>", page, count=1, flags=re.IGNORECASE)

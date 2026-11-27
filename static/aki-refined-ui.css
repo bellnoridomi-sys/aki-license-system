@@ -59,3 +59,95 @@ body.aki-refined-glass .aki-cursor-glow{display:none!important}
 body.aki-refined-glass main,body.aki-refined-glass #app,body.aki-refined-glass .dashboard-shell{animation:none!important}
 @media(max-width:760px){body.aki-refined-glass .aki-global-backdrop{background-attachment:scroll!important;background-position:center center!important}body.aki-refined-glass .aki-glass-panel{backdrop-filter:blur(11px)!important;-webkit-backdrop-filter:blur(11px)!important}}
 @media(prefers-reduced-motion:reduce){body.aki-refined-glass *,body.aki-refined-glass *::before,body.aki-refined-glass *::after{animation:none!important;transition:none!important}}
+
+
+/* AKI photo glass correction — make the requested background actually visible */
+body.aki-refined-glass{
+  background-color:#101116!important;
+  background-image:
+    linear-gradient(128deg,rgba(4,6,10,.20) 0%,rgba(4,6,10,.16) 46%,rgba(4,6,10,.30) 100%),
+    url("https://i.pinimg.com/1200x/18/d2/d1/18d2d1777738a20aa5c38a681e973388.jpg")!important;
+  background-position:center center!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+  background-attachment:fixed!important;
+}
+body.aki-refined-glass .aki-global-backdrop{
+  background:transparent!important;
+  background-image:none!important;
+}
+body.aki-refined-glass :is(.app,.main,.main-content,#app,main,.dashboard-shell,.page,.page-content,.content,.content-wrapper,.container-fluid,.layout,.workspace){
+  background:transparent!important;
+}
+body.aki-refined-glass .aki-glass-panel{
+  background:
+    linear-gradient(138deg,rgba(255,255,255,.095) 0%,rgba(255,255,255,.035) 48%,rgba(255,255,255,.018) 100%),
+    rgba(17,20,28,.24)!important;
+  border:1px solid rgba(255,255,255,.19)!important;
+  border-radius:22px!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -1px 0 rgba(255,255,255,.025),
+    0 18px 48px rgba(0,0,0,.20)!important;
+  backdrop-filter:blur(22px) saturate(145%)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(145%)!important;
+}
+body.aki-refined-glass .aki-glass-panel.aki-glass-interactive{
+  background:
+    linear-gradient(138deg,rgba(255,255,255,.105),rgba(255,255,255,.028)),
+    rgba(17,20,28,.19)!important;
+}
+body.aki-refined-glass .aki-glass-panel.aki-glass-interactive:hover{
+  background:
+    linear-gradient(138deg,rgba(255,255,255,.13),rgba(255,255,255,.04)),
+    rgba(17,20,28,.22)!important;
+  border-color:rgba(255,255,255,.26)!important;
+}
+body.aki-refined-glass .aki-glass-sidebar{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.018)),
+    rgba(10,12,17,.34)!important;
+  border-color:rgba(255,255,255,.18)!important;
+  backdrop-filter:blur(26px) saturate(145%)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(145%)!important;
+}
+body.aki-refined-glass .aki-glass-topbar{
+  background:
+    linear-gradient(100deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),
+    rgba(10,12,17,.24)!important;
+  border-color:rgba(255,255,255,.17)!important;
+  backdrop-filter:blur(24px) saturate(145%)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(145%)!important;
+}
+body.aki-refined-glass .aki-glass-panel :is(input,select,textarea,.form-control){
+  background:rgba(5,7,11,.30)!important;
+  border-color:rgba(255,255,255,.19)!important;
+  border-radius:16px!important;
+}
+body.aki-refined-glass button:not(.aki-v2-command-item),
+body.aki-refined-glass .btn,
+body.aki-refined-glass .button,
+body.aki-refined-glass input[type=submit],
+body.aki-refined-glass input[type=button]{
+  min-height:42px!important;
+  border-radius:999px!important;
+  border-color:rgba(255,255,255,.25)!important;
+  background:linear-gradient(140deg,rgba(255,255,255,.17),rgba(255,255,255,.065))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 7px 20px rgba(0,0,0,.18)!important;
+  backdrop-filter:blur(16px) saturate(140%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(140%)!important;
+}
+body.aki-refined-glass .aki-v2-toolbar,
+body.aki-refined-glass .aki-v2-timeline{
+  background:
+    linear-gradient(140deg,rgba(255,255,255,.09),rgba(255,255,255,.025)),
+    rgba(15,18,25,.25)!important;
+  border-color:rgba(255,255,255,.18)!important;
+  border-radius:21px!important;
+  backdrop-filter:blur(22px) saturate(145%)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(145%)!important;
+}
+@media(max-width:760px){
+  body.aki-refined-glass{background-attachment:scroll!important;background-position:center center!important}
+  body.aki-refined-glass .aki-glass-panel{backdrop-filter:blur(16px) saturate(135%)!important;-webkit-backdrop-filter:blur(16px) saturate(135%)!important}
+}
