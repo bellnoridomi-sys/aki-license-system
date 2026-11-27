@@ -508,6 +508,59 @@ button,input{font:inherit}
         if request.path.startswith("/store") or request.path.startswith("/admin/orders"):
             response.headers.setdefault("Cache-Control", "no-store, max-age=0")
             response.headers.setdefault("X-Content-Type-Options", "nosniff")
+
+        # Put a prominent shortcut on the existing admin dashboard so the
+        # payment review queue is easy to find without remembering its URL.
+        if request.path == "/admin" and response.mimetype == "text/html":
+            try:
+                waiting_count = (
+                    _db_session().query(AKIShopOrder)
+                    .filter_by(status="reported")
+                    .count()
+                )
+            except Exception:
+                app.logger.exception("Could not count AKI orders awaiting review")
+                waiting_count = 0
+
+            pending_label = (
+                f"{waiting_count} đơn khách báo đã chuyển khoản"
+                if waiting_count
+                else "Không có đơn nào đang chờ xác nhận"
+            )
+            entry = """
+<style id="aki-admin-order-entry-style">
+.aki-admin-order-entry{width:min(1180px,calc(100% - 36px));margin:18px auto 22px;padding:19px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;border:1px solid rgba(255,255,255,.16);border-radius:20px;background:linear-gradient(115deg,rgba(255,255,255,.105),rgba(255,255,255,.035));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 14px 38px rgba(0,0,0,.22);color:#f5f5f2;font-family:Inter,system-ui,sans-serif}
+.aki-admin-order-entry *{box-sizing:border-box}
+.aki-admin-order-entry .aki-order-eyebrow{display:block;color:#aaa;font-size:10px;letter-spacing:.2em;font-weight:750;text-transform:uppercase;margin-bottom:7px}
+.aki-admin-order-entry h2{margin:0 0 6px;font-size:19px;letter-spacing:-.035em;color:#fff}
+.aki-admin-order-entry p{margin:0;color:#aaa;font-size:12px;line-height:1.55;max-width:650px}
+.aki-admin-order-entry .aki-order-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.aki-admin-order-entry .aki-order-count{font-size:11px;color:#ddd;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:7px 11px;background:rgba(0,0,0,.16)}
+.aki-admin-order-entry .aki-order-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;padding:12px 17px;background:#f0f0eb;color:#111!important;font-size:12px;font-weight:800;text-decoration:none!important;white-space:nowrap;transition:transform .18s ease,background .18s ease}
+.aki-admin-order-entry .aki-order-link:hover{transform:translateY(-2px);background:#fff}
+@media(max-width:620px){.aki-admin-order-entry{padding:17px}.aki-admin-order-entry .aki-order-actions{width:100%;justify-content:space-between}.aki-admin-order-entry .aki-order-link{flex:1}}
+</style>
+<section class="aki-admin-order-entry" aria-label="Quản lý đơn mua license">
+  <div>
+    <span class="aki-order-eyebrow">Payment center · AKI DEV</span>
+    <h2>Duyệt đơn mua license</h2>
+    <p>Kiểm tra giao dịch ZaloPay, xác nhận hoặc từ chối đơn và cấp key thẳng vào tài khoản khách hàng.</p>
+  </div>
+  <div class="aki-order-actions">
+    <span class="aki-order-count">__PENDING_LABEL__</span>
+    <a class="aki-order-link" href="__ORDER_URL__">Mở danh sách đơn <span aria-hidden="true">↗</span></a>
+  </div>
+</section>
+"""
+            entry = entry.replace("__PENDING_LABEL__", pending_label)
+            entry = entry.replace("__ORDER_URL__", url_for("aki_admin_orders"))
+            page = response.get_data(as_text=True)
+            body_start = page.lower().find("<body")
+            body_end = page.find(">", body_start) if body_start >= 0 else -1
+            if body_end >= 0 and "aki-admin-order-entry" not in page:
+                page = page[:body_end + 1] + entry + page[body_end + 1:]
+                response.set_data(page)
+
         return response
 
-    app.logger.info("AKI manual storefront registered: /store and /admin/orders")
+    app.logger.info("AKI manual storefront registered: /store, /admin and /admin/orders")
