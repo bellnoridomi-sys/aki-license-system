@@ -312,7 +312,7 @@ source += """
 
 # AKI manual-payment storefront (account + Discord DM).
 from aki_shop_extension import register_aki_shop
-register_aki_shop(app, db, License, utcnow)
+register_aki_shop(app, License, utcnow)
 """
 ast.parse(source)
 

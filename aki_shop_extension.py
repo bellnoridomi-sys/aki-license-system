@@ -14,38 +14,43 @@ from flask import (
 )
 from markupsafe import Markup
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func, inspect
 
 
-def register_aki_shop(app, db, License, utcnow):
+def register_aki_shop(app, License, utcnow):
     """Add the manual-payment storefront without changing existing license APIs."""
+    registry = inspect(License).registry
+    Base = registry.generate_base()
+    db_session = License.query.session
 
-    class AKIShopCustomer(db.Model):
+    class AKIShopCustomer(Base):
         __tablename__ = "aki_shop_customers"
-        id = db.Column(db.Integer, primary_key=True)
-        username = db.Column(db.String(32), unique=True, nullable=False)
-        password_hash = db.Column(db.String(255), nullable=False)
-        discord_id = db.Column(db.String(32), unique=True, nullable=True)
-        discord_name = db.Column(db.String(100), nullable=True)
-        created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+        id = Column(Integer, primary_key=True)
+        username = Column(String(32), unique=True, nullable=False)
+        password_hash = Column(String(255), nullable=False)
+        discord_id = Column(String(32), unique=True, nullable=True)
+        discord_name = Column(String(100), nullable=True)
+        created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
 
-    class AKIShopOrder(db.Model):
+    class AKIShopOrder(Base):
         __tablename__ = "aki_shop_orders"
-        id = db.Column(db.Integer, primary_key=True)
-        order_code = db.Column(db.String(20), unique=True, nullable=False, index=True)
-        customer_id = db.Column(db.Integer, db.ForeignKey("aki_shop_customers.id"), nullable=False, index=True)
-        duration_days = db.Column(db.Integer, nullable=False)
-        amount_vnd = db.Column(db.Integer, nullable=False)
-        status = db.Column(db.String(20), nullable=False, default="pending", index=True)
-        payment_ref = db.Column(db.String(120), nullable=True)
-        created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
-        reported_at = db.Column(db.DateTime(timezone=True), nullable=True)
-        paid_at = db.Column(db.DateTime(timezone=True), nullable=True)
-        license_id = db.Column(db.Integer, db.ForeignKey("licenses.id"), nullable=True)
-        issued_key = db.Column(db.Text, nullable=True)
-        discord_dm_status = db.Column(db.String(32), nullable=True)
+        id = Column(Integer, primary_key=True)
+        order_code = Column(String(20), unique=True, nullable=False, index=True)
+        customer_id = Column(Integer, ForeignKey("aki_shop_customers.id"), nullable=False, index=True)
+        duration_days = Column(Integer, nullable=False)
+        amount_vnd = Column(Integer, nullable=False)
+        status = Column(String(20), nullable=False, default="pending", index=True)
+        payment_ref = Column(String(120), nullable=True)
+        created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+        reported_at = Column(DateTime(timezone=True), nullable=True)
+        paid_at = Column(DateTime(timezone=True), nullable=True)
+        license_id = Column(Integer, ForeignKey("licenses.id"), nullable=True)
+        issued_key = Column(Text, nullable=True)
+        discord_dm_status = Column(String(32), nullable=True)
 
     with app.app_context():
-        db.create_all()
+        db_session = License.query.session
+        Base.metadata.create_all(bind=db_session.get_bind())
 
     plans = {
         "7d": {"days": 7, "price": 5000, "name": "7 ngày"},
@@ -135,7 +140,7 @@ button,input{font:inherit}
         if not customer_id:
             return None
         try:
-            return db.session.get(AKIShopCustomer, int(customer_id))
+            return db_session.get(AKIShopCustomer, int(customer_id))
         except Exception:
             session.pop("aki_shop_customer_id", None)
             return None
@@ -152,7 +157,7 @@ button,input{font:inherit}
         return render_template_string(BASE, title=title, content=Markup(rendered), customer=customer)
 
     def _owned_order(order_id, customer):
-        order = AKIShopOrder.query.filter_by(id=order_id, customer_id=customer.id).first()
+        order = db_session.query(AKIShopOrder).filter_by(id=order_id, customer_id=customer.id).first()
         if order is None:
             abort(404)
         return order
@@ -254,12 +259,12 @@ button,input{font:inherit}
         if len(password) < 8:
             flash("Mật khẩu cần ít nhất 8 ký tự.")
             return redirect(url_for("aki_store_register"))
-        if AKIShopCustomer.query.filter(db.func.lower(AKIShopCustomer.username) == username.lower()).first():
+        if db_session.query(AKIShopCustomer).filter(func.lower(AKIShopCustomer.username) == username.lower()).first():
             flash("Tên tài khoản đã được sử dụng.")
             return redirect(url_for("aki_store_register"))
         customer = AKIShopCustomer(username=username, password_hash=generate_password_hash(password))
-        db.session.add(customer)
-        db.session.commit()
+        db_session.add(customer)
+        db_session.commit()
         session.clear()
         session["aki_shop_customer_id"] = customer.id
         session["_csrf_token"] = secrets.token_urlsafe(32)
@@ -285,7 +290,7 @@ button,input{font:inherit}
     def aki_store_login_post():
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
-        customer = AKIShopCustomer.query.filter(db.func.lower(AKIShopCustomer.username) == username.lower()).first()
+        customer = db_session.query(AKIShopCustomer).filter(func.lower(AKIShopCustomer.username) == username.lower()).first()
         if customer is None or not check_password_hash(customer.password_hash, password):
             flash("Tên tài khoản hoặc mật khẩu không đúng.")
             return redirect(url_for("aki_store_login"))
@@ -318,8 +323,8 @@ button,input{font:inherit}
             amount_vnd=plan["price"],
             status="pending",
         )
-        db.session.add(order)
-        db.session.commit()
+        db_session.add(order)
+        db_session.commit()
         return redirect(url_for("aki_store_order_detail", order_id=order.id))
 
     @app.get("/store/orders")
@@ -327,7 +332,7 @@ button,input{font:inherit}
         customer = _customer()
         if customer is None:
             return redirect(url_for("aki_store_login"))
-        rows = AKIShopOrder.query.filter_by(customer_id=customer.id).order_by(AKIShopOrder.created_at.desc()).all()
+        rows = db_session.query(AKIShopOrder).filter_by(customer_id=customer.id).order_by(AKIShopOrder.created_at.desc()).all()
         labels = {"pending": "Chưa báo chuyển khoản", "reported": "Chờ admin xác nhận", "paid": "Đã thanh toán · Đã cấp key", "rejected": "Đơn bị từ chối"}
         inner = """
 <section class="aki-shop-panel" style="max-width:900px">
@@ -401,7 +406,7 @@ button,input{font:inherit}
         order.payment_ref = (request.form.get("payment_ref") or "").strip()[:120] or None
         order.status = "reported"
         order.reported_at = utcnow()
-        db.session.commit()
+        db_session.commit()
         flash("Đã gửi thông báo. Key sẽ được cấp sau khi admin kiểm tra tiền vào ví.")
         return redirect(url_for("aki_store_order_detail", order_id=order.id))
 
@@ -491,13 +496,13 @@ button,input{font:inherit}
             discord_id = str(profile.get("id", ""))
             if not discord_id:
                 raise ValueError("Discord did not return a user ID.")
-            duplicate = AKIShopCustomer.query.filter_by(discord_id=discord_id).first()
+            duplicate = db_session.query(AKIShopCustomer).filter_by(discord_id=discord_id).first()
             if duplicate and duplicate.id != customer.id:
                 flash("Discord này đã được liên kết với một tài khoản AKI khác.")
                 return redirect(url_for("aki_store_account"))
             customer.discord_id = discord_id
             customer.discord_name = profile.get("global_name") or profile.get("username") or discord_id
-            db.session.commit()
+            db_session.commit()
             flash("Đã liên kết Discord thành công.")
         except Exception:
             app.logger.exception("AKI Discord OAuth callback failed")
@@ -508,7 +513,7 @@ button,input{font:inherit}
     def aki_admin_orders():
         if session.get("admin_logged_in") is not True:
             abort(403)
-        rows = AKIShopOrder.query.order_by(AKIShopOrder.created_at.desc()).limit(200).all()
+        rows = db_session.query(AKIShopOrder).order_by(AKIShopOrder.created_at.desc()).limit(200).all()
         inner = """
 <section class="aki-shop-panel" style="max-width:1050px">
 <div class="aki-shop-eyebrow">PAYMENT REVIEW</div><h1>Đơn mua license</h1>
@@ -539,14 +544,16 @@ button,input{font:inherit}
         labels = {"pending": "Chưa báo chuyển khoản", "reported": "Khách báo đã chuyển", "paid": "Đã cấp key", "rejected": "Đã từ chối"}
         # Attach the customer object for the template without creating ORM relationships.
         for order in rows:
-            order.customer = db.session.get(AKIShopCustomer, order.customer_id)
+            order.customer = db_session.get(AKIShopCustomer, order.customer_id)
         return _page("Duyệt đơn hàng", inner, rows=rows, labels=labels, money=_money)
 
     @app.post("/admin/orders/<int:order_id>/action")
     def aki_admin_order_action(order_id):
         if session.get("admin_logged_in") is not True:
             abort(403)
-        order = AKIShopOrder.query.get_or_404(order_id)
+        order = db_session.get(AKIShopOrder, order_id)
+        if order is None:
+            abort(404)
         action = request.form.get("action")
         if order.status == "paid":
             flash("Đơn đã được duyệt, hệ thống không tạo key trùng.")
@@ -556,12 +563,12 @@ button,input{font:inherit}
             return redirect(url_for("aki_admin_orders"))
         if action == "reject":
             order.status = "rejected"
-            db.session.commit()
+            db_session.commit()
             flash("Đã từ chối đơn hàng.")
             return redirect(url_for("aki_admin_orders"))
         if action != "approve":
             abort(400)
-        customer = db.session.get(AKIShopCustomer, order.customer_id)
+        customer = db_session.get(AKIShopCustomer, order.customer_id)
         if customer is None:
             abort(400)
         license_key = "AKI-" + secrets.token_hex(5).upper() + "-" + secrets.token_hex(5).upper()
@@ -576,15 +583,15 @@ button,input{font:inherit}
             expires_at=None,
         )
         try:
-            db.session.add(item)
-            db.session.flush()
+            db_session.add(item)
+            db_session.flush()
             order.license_id = item.id
             order.issued_key = license_key
             order.status = "paid"
             order.paid_at = utcnow()
-            db.session.commit()
+            db_session.commit()
         except Exception:
-            db.session.rollback()
+            db_session.rollback()
             app.logger.exception("AKI failed to issue license for order %s", order.order_code)
             flash("Không thể tạo key. Hãy kiểm tra log và thử lại.")
             return redirect(url_for("aki_admin_orders"))
@@ -596,7 +603,7 @@ button,input{font:inherit}
             "Key bắt đầu tính hạn từ lần kích hoạt đầu tiên."
         )
         order.discord_dm_status = _send_discord_dm(customer.discord_id, dm_text) if customer.discord_id else "not_linked"
-        db.session.commit()
+        db_session.commit()
         flash("Đã xác nhận thanh toán và tạo license. Key đã lưu trong tài khoản khách.")
         return redirect(url_for("aki_admin_orders"))
 
