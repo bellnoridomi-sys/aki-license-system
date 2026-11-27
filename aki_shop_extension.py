@@ -167,48 +167,6 @@ button,input{font:inherit}
     def _money(value):
         return f"{int(value):,}".replace(",", ".") + "đ"
 
-    def _send_discord_dm(discord_id, message):
-        token = os.environ.get("AKI_DISCORD_BOT_TOKEN") or os.environ.get("DISCORD_BOT_TOKEN")
-        if not token or not discord_id:
-            return "not_configured"
-        try:
-            headers = {
-                "Authorization": "Bot " + token,
-                "Content-Type": "application/json",
-                "User-Agent": "AKI-License-Store/1.0",
-            }
-            payload = json.dumps({"recipient_id": str(discord_id)}).encode("utf-8")
-            req = urllib.request.Request(
-                "https://discord.com/api/v10/users/@me/channels",
-                data=payload, headers=headers, method="POST"
-            )
-            with urllib.request.urlopen(req, timeout=12) as response:
-                channel = json.loads(response.read().decode("utf-8"))
-            channel_id = channel.get("id")
-            if not channel_id:
-                return "failed"
-            msg_payload = json.dumps({"content": message}).encode("utf-8")
-            msg_req = urllib.request.Request(
-                f"https://discord.com/api/v10/channels/{channel_id}/messages",
-                data=msg_payload, headers=headers, method="POST"
-            )
-            with urllib.request.urlopen(msg_req, timeout=12) as response:
-                response.read()
-            return "sent"
-        except Exception:
-            app.logger.exception("AKI Discord DM failed")
-            return "failed"
-
-    def _discord_api(url, data=None, bearer=None):
-        headers = {"User-Agent": "AKI-License-Store/1.0"}
-        if data is not None:
-            headers["Content-Type"] = "application/x-www-form-urlencoded"
-        if bearer:
-            headers["Authorization"] = "Bearer " + bearer
-        req = urllib.request.Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
-        with urllib.request.urlopen(req, timeout=15) as response:
-            return json.loads(response.read().decode("utf-8"))
-
     @app.before_request
     def aki_store_root_redirect():
         # Send visitors to the storefront instead of the admin login screen.
@@ -372,9 +330,6 @@ button,input{font:inherit}
 <h3>License key của bro</h3><div class="aki-shop-key" id="aki-key">{{ order.issued_key }}</div>
 <button class="aki-shop-btn primary" onclick="navigator.clipboard.writeText(document.getElementById('aki-key').innerText).then(()=>this.innerText='Đã copy')">Copy key</button>
 <p class="aki-shop-muted">Key {{ "vĩnh viễn" if order.duration_days == 0 else "10 ngày" if order.duration_days == 10 else order.duration_days|string + " ngày" }}. Thời hạn bắt đầu khi kích hoạt lần đầu.</p>
-{% if order.discord_dm_status == 'sent' %}<p class="aki-shop-pill good">Đã gửi key qua Discord DM</p>
-{% elif order.discord_dm_status == 'failed' %}<p class="aki-shop-muted">Chưa gửi được Discord DM. Key vẫn có trong tài khoản.</p>
-{% elif order.discord_dm_status == 'not_configured' %}<p class="aki-shop-muted">Discord DM chưa được cấu hình trên máy chủ.</p>{% endif %}
 {% elif order.status == 'rejected' %}
 <p class="aki-shop-muted">Đơn này đã bị từ chối. Liên hệ AKI DEV nếu bro cần kiểm tra lại.</p>
 {% else %}
@@ -423,99 +378,41 @@ button,input{font:inherit}
         customer = _customer()
         if customer is None:
             return redirect(url_for("aki_store_login"))
-        discord_ready = bool(os.environ.get("DISCORD_CLIENT_ID") or os.environ.get("AKI_DISCORD_CLIENT_ID"))
-        bot_ready = bool(os.environ.get("AKI_DISCORD_BOT_TOKEN") or os.environ.get("DISCORD_BOT_TOKEN"))
+        paid_orders = (
+            _db_session().query(AKIShopOrder)
+            .filter_by(customer_id=customer.id, status="paid")
+            .order_by(AKIShopOrder.paid_at.desc())
+            .all()
+        )
         inner = """
-<section class="aki-shop-panel">
-<div class="aki-shop-eyebrow">ACCOUNT SETTINGS</div><h1>{{ customer.username }}</h1>
-<p class="aki-shop-muted">Tài khoản khách hàng AKI. Các key đã mua được lưu trong mục Đơn hàng.</p>
-<div class="aki-shop-card" style="margin:18px 0">
-<h3>Discord</h3>
-{% if customer.discord_id %}
-<p>Đã liên kết: <b>{{ customer.discord_name or customer.discord_id }}</b></p>
-{% else %}
-<p class="aki-shop-muted">Chưa liên kết Discord.</p>
-{% endif %}
-{% if discord_ready %}
-<a class="aki-shop-btn primary" href="{{ url_for('aki_store_discord_connect') }}">{{ "Liên kết lại Discord" if customer.discord_id else "Liên kết Discord để nhận key qua DM" }}</a>
-{% else %}
-<p class="aki-shop-muted">Chưa cấu hình Discord OAuth trên máy chủ.</p>
-{% endif %}
-{% if not bot_ready %}<p class="aki-shop-muted">Bot DM chưa được cấu hình. Key vẫn xuất hiện trong tài khoản sau khi duyệt.</p>{% endif %}
+<section class="aki-shop-panel" style="max-width:900px">
+<div class="aki-shop-eyebrow">MY AKI ACCOUNT</div><h1>{{ customer.username }}</h1>
+<p class="aki-shop-muted">Tất cả license đã mua được lưu tại đây. Sau khi admin xác nhận thanh toán, key sẽ tự xuất hiện trong tài khoản này.</p>
+<h2 style="font-size:18px;margin-top:28px">License của tôi</h2>
+{% if paid_orders %}
+<div style="display:grid;gap:14px;margin-top:14px">
+{% for order in paid_orders %}
+<article class="aki-shop-card">
+<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+<h3 style="margin:0">{{ "Vĩnh viễn" if order.duration_days == 0 else order.duration_days|string + " ngày" }}</h3>
+<span class="aki-shop-pill good">Đã cấp key</span>
 </div>
-<a class="aki-shop-link" href="{{ url_for('aki_store_orders') }}">Xem đơn hàng và license</a>
+<p class="aki-shop-muted" style="margin:9px 0 0">Đơn {{ order.order_code }} · {{ money(order.amount_vnd) }}</p>
+<div class="aki-shop-key" id="aki-key-{{ order.id }}">{{ order.issued_key }}</div>
+<button class="aki-shop-btn primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('aki-key-{{ order.id }}').innerText).then(()=>this.innerText='Đã copy key')">Copy key</button>
+<a class="aki-shop-link" href="{{ url_for('aki_store_order_detail', order_id=order.id) }}" style="margin-left:6px">Chi tiết đơn</a>
+<p class="aki-shop-muted" style="font-size:12px;margin-bottom:0">Thời hạn bắt đầu tính từ lần kích hoạt đầu tiên.</p>
+</article>
+{% endfor %}
+</div>
+{% else %}
+<p class="aki-shop-muted">Bro chưa có license nào. Chọn một gói ở cửa hàng để bắt đầu nhé.</p>
+<a class="aki-shop-btn primary" href="{{ url_for('aki_store_home') }}">Chọn license</a>
+{% endif %}
+<div style="margin-top:24px"><a class="aki-shop-link" href="{{ url_for('aki_store_orders') }}">Xem toàn bộ lịch sử đơn hàng</a></div>
 </section>
 """
-        return _page("Tài khoản", inner, customer=customer, discord_ready=discord_ready, bot_ready=bot_ready)
-
-    @app.get("/store/discord/connect")
-    def aki_store_discord_connect():
-        customer = _customer()
-        if customer is None:
-            return redirect(url_for("aki_store_login"))
-        client_id = os.environ.get("DISCORD_CLIENT_ID") or os.environ.get("AKI_DISCORD_CLIENT_ID")
-        if not client_id:
-            flash("Discord OAuth chưa được cấu hình trên máy chủ.")
-            return redirect(url_for("aki_store_account"))
-        state = secrets.token_urlsafe(24)
-        session["aki_discord_oauth_state"] = state
-        redirect_uri = os.environ.get("AKI_DISCORD_REDIRECT_URI") or url_for("aki_store_discord_callback", _external=True)
-        params = urllib.parse.urlencode({
-            "client_id": client_id,
-            "redirect_uri": redirect_uri,
-            "response_type": "code",
-            "scope": "identify",
-            "state": state,
-        })
-        return redirect("https://discord.com/oauth2/authorize?" + params)
-
-    @app.get("/store/discord/callback")
-    def aki_store_discord_callback():
-        customer = _customer()
-        if customer is None:
-            flash("Hãy đăng nhập AKI trước khi liên kết Discord.")
-            return redirect(url_for("aki_store_login"))
-        state = request.args.get("state", "")
-        expected = session.pop("aki_discord_oauth_state", "")
-        if not expected or not secrets.compare_digest(state, expected):
-            abort(400, description="Discord OAuth state mismatch.")
-        client_id = os.environ.get("DISCORD_CLIENT_ID") or os.environ.get("AKI_DISCORD_CLIENT_ID")
-        client_secret = os.environ.get("DISCORD_CLIENT_SECRET") or os.environ.get("AKI_DISCORD_CLIENT_SECRET")
-        if not client_id or not client_secret or not request.args.get("code"):
-            flash("Không nhận được cấu hình hoặc mã xác thực Discord.")
-            return redirect(url_for("aki_store_account"))
-        redirect_uri = os.environ.get("AKI_DISCORD_REDIRECT_URI") or url_for("aki_store_discord_callback", _external=True)
-        try:
-            token_data = urllib.parse.urlencode({
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "grant_type": "authorization_code",
-                "code": request.args["code"],
-                "redirect_uri": redirect_uri,
-            }).encode("utf-8")
-            token_result = _discord_api(
-                "https://discord.com/api/v10/oauth2/token",
-                data=token_data
-            )
-            profile = _discord_api(
-                "https://discord.com/api/v10/users/@me",
-                bearer=token_result.get("access_token")
-            )
-            discord_id = str(profile.get("id", ""))
-            if not discord_id:
-                raise ValueError("Discord did not return a user ID.")
-            duplicate = _db_session().query(AKIShopCustomer).filter_by(discord_id=discord_id).first()
-            if duplicate and duplicate.id != customer.id:
-                flash("Discord này đã được liên kết với một tài khoản AKI khác.")
-                return redirect(url_for("aki_store_account"))
-            customer.discord_id = discord_id
-            customer.discord_name = profile.get("global_name") or profile.get("username") or discord_id
-            _db_session().commit()
-            flash("Đã liên kết Discord thành công.")
-        except Exception:
-            app.logger.exception("AKI Discord OAuth callback failed")
-            flash("Liên kết Discord thất bại. Hãy thử lại.")
-        return redirect(url_for("aki_store_account"))
+        return _page("Tài khoản", inner, customer=customer, paid_orders=paid_orders, money=_money)
 
     @app.get("/admin/orders")
     def aki_admin_orders():
@@ -525,12 +422,12 @@ button,input{font:inherit}
         inner = """
 <section class="aki-shop-panel" style="max-width:1050px">
 <div class="aki-shop-eyebrow">PAYMENT REVIEW</div><h1>Đơn mua license</h1>
-<p class="aki-shop-muted">Kiểm tra tiền đã vào ví ZaloPay trước khi xác nhận. Nút xác nhận sẽ tạo license đúng gói và gửi Discord DM nếu khách đã liên kết.</p>
+<p class="aki-shop-muted">Kiểm tra tiền đã vào ví ZaloPay trước khi xác nhận. Nút xác nhận sẽ tạo license và lưu key trực tiếp vào tài khoản khách.</p>
 {% if rows %}
 <table class="aki-shop-table"><thead><tr><th>Đơn</th><th>Khách</th><th>Gói</th><th>Tiền</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
 {% for order in rows %}<tr>
 <td>{{ order.order_code }}<br><small style="color:#888">{{ order.created_at }}</small></td>
-<td>{{ order.customer.username if order.customer else order.customer_id }}<br><small style="color:#888">{{ order.customer.discord_name if order.customer and order.customer.discord_name else "Chưa liên kết Discord" }}</small></td>
+<td>{{ order.customer.username if order.customer else order.customer_id }}</td>
 <td>{{ "Vĩnh viễn" if order.duration_days == 0 else order.duration_days|string + " ngày" }}</td>
 <td>{{ money(order.amount_vnd) }}{% if order.payment_ref %}<br><small style="color:#aaa">Ref: {{ order.payment_ref }}</small>{% endif %}</td>
 <td><span class="aki-shop-pill {{ 'good' if order.status == 'paid' else 'wait' }}">{{ labels[order.status] }}</span></td>
@@ -542,7 +439,7 @@ button,input{font:inherit}
 <button class="aki-shop-btn danger" name="action" value="reject" type="submit">Từ chối</button>
 </form>
 {% elif order.status == 'paid' %}
-<small style="color:#aaa">{{ order.discord_dm_status or "Đã cấp key" }}</small>
+<small style="color:#aaa">Key đã lưu trên web</small>
 {% endif %}
 </td>
 </tr>{% endfor %}</tbody></table>
@@ -603,15 +500,6 @@ button,input{font:inherit}
             app.logger.exception("AKI failed to issue license for order %s", order.order_code)
             flash("Không thể tạo key. Hãy kiểm tra log và thử lại.")
             return redirect(url_for("aki_admin_orders"))
-        dm_text = (
-            "AKI DEV · Thanh toán đã được xác nhận\n"
-            f"Đơn hàng: {order.order_code}\n"
-            f"Gói: {'Vĩnh viễn' if order.duration_days == 0 else str(order.duration_days) + ' ngày'}\n"
-            f"License key: {license_key}\n"
-            "Key bắt đầu tính hạn từ lần kích hoạt đầu tiên."
-        )
-        order.discord_dm_status = _send_discord_dm(customer.discord_id, dm_text) if customer.discord_id else "not_linked"
-        _db_session().commit()
         flash("Đã xác nhận thanh toán và tạo license. Key đã lưu trong tài khoản khách.")
         return redirect(url_for("aki_admin_orders"))
 
