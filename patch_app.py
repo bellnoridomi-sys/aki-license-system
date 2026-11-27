@@ -255,6 +255,63 @@ replace_once(
 )
 
 ast.parse(source)  # Fail the build instead of deploying invalid patched Python.
+
+replace_once(
+'''            response.set_data(page)
+        return response
+
+    @app.get("/healthz")
+''',
+'''            if request.path in ("/admin", "/admin/keys/create") and "aki-custom-elements" not in page:
+                now = utcnow()
+                licenses = License.query.all()
+                total_count = len(licenses)
+                active_count = sum(1 for item in licenses if license_state(item, now) == "active")
+                unused_count = sum(1 for item in licenses if license_state(item, now) == "unused")
+                stat_values = [
+                    (format(total_count, ","), "Tổng license"),
+                    (format(active_count, ","), "Đang hoạt động"),
+                    (format(unused_count, ","), "Chưa kích hoạt"),
+                ]
+                stat_items = "".join(
+                    '<li class="u426-c" data-v="' + value + '"><span class="u426-n"></span><small>' + label + '</small></li>'
+                    for value, label in stat_values
+                )
+                addon = (
+                    '<section class="aki-custom-elements" aria-label="AKI License statistics and Discord contact">'
+                    '<div class="u426" aria-label="License statistics">'
+                    '<ul class="u426-cd">' + stat_items + '</ul>'
+                    '</div>'
+                    '<article class="aki-uv-card" aria-label="Contact AKI Dev">'
+                    '<div class="aki-uv-blob" aria-hidden="true"></div>'
+                    '<div class="aki-uv-bg">'
+                    '<p class="aki-uv-kicker">CUSTOM DEVELOPMENT</p>'
+                    '<h2 class="aki-uv-title">AKI DEV</h2>'
+                    '<p class="aki-uv-copy">Custom tools &amp; automation<br>Liên hệ để đặt tool riêng</p>'
+                    '<button type="button" class="aki-uv-discord" data-discord="s0l">DISCORD · s0l</button>'
+                    '<span class="aki-uv-status" role="status" aria-live="polite"></span>'
+                    '</div></article></section>'
+                )
+                asset_tags = (
+                    '<link rel="stylesheet" href="' + url_for("static", filename="aki-custom-elements.css") + '">'
+                    '<script defer src="' + url_for("static", filename="aki-custom-elements.js") + '"></script>'
+                )
+                if "</head>" in page.lower():
+                    page = re.sub(r"</head>", lambda _m: asset_tags + "</head>", page, count=1, flags=re.IGNORECASE)
+                else:
+                    page = asset_tags + page
+                if "</body>" in page.lower():
+                    page = re.sub(r"</body>", lambda _m: addon + "</body>", page, count=1, flags=re.IGNORECASE)
+                else:
+                    page += addon
+            response.set_data(page)
+        return response
+
+    @app.get("/healthz")
+''',
+"AKI dashboard stats and Discord contact components",
+)
+
 APP.write_text(source, encoding="utf-8")
 
 client = Path("aki_license_client_snippet.py")
