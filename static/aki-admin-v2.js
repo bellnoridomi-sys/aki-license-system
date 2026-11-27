@@ -144,7 +144,7 @@
     drawerOverlay = make("div", "aki-v2-overlay");
     drawerOverlay.style.display = "none";
     drawerOverlay.addEventListener("click", closeDrawer);
-    drawer = make("aside", "aki-v2-drawer");
+    drawer = make("aside", "aki-v2-drawer aki-glass-drawer");
     drawer.setAttribute("role", "dialog");
     drawer.setAttribute("aria-modal", "true");
     drawer.setAttribute("aria-label", "Chi tiết license");
@@ -217,7 +217,7 @@
 
   function buildTableTools() {
     if (!table || !allRows.length || $(".aki-v2-toolbar")) return;
-    const toolbar = make("section", "aki-v2-toolbar");
+    const toolbar = make("section", "aki-v2-toolbar aki-glass-panel");
     toolbar.setAttribute("aria-label", "Công cụ lọc license");
     const searchWrap = make("label", "aki-v2-search-wrap");
     const icon = make("span", "aki-v2-search-icon", "⌕");
@@ -295,7 +295,7 @@
 
   function buildTimeline() {
     if (!table || !allRows.length || $(".aki-v2-timeline")) return;
-    const section = make("section", "aki-v2-timeline");
+    const section = make("section", "aki-v2-timeline aki-glass-panel");
     const heading = make("div", "aki-v2-section-head");
     const titleWrap = make("div");
     titleWrap.append(make("h2", "aki-v2-section-title", "License activity"));
@@ -335,7 +335,7 @@
     paletteOverlay = make("div", "aki-v2-overlay");
     paletteOverlay.style.display = "none";
     paletteOverlay.addEventListener("click", (event) => { if (event.target === paletteOverlay) closePalette(); });
-    const panel = make("section", "aki-v2-command");
+    const panel = make("section", "aki-v2-command aki-glass-command");
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-modal", "true");
     panel.setAttribute("aria-label", "AKI command palette");
