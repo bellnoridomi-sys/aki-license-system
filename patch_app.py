@@ -95,61 +95,15 @@ replace_once(
 
             theme = """
 <style id="aki-monochrome-theme">
-:root {
-  color-scheme: dark;
-  --bg:#080808; --panel:#111111; --panel2:#191919;
-  --line:rgba(255,255,255,.13); --text:#f5f5f5; --muted:#a0a0a0;
-  --purple:#eeeeee; --purple2:#cfcfcf; --green:#e5e5e5;
-  --red:#bdbdbd; --blue:#ffffff;
+:root{
+  color-scheme:dark;
+  --bg:#030303;--panel:rgba(13,13,13,.78);--panel2:rgba(19,19,19,.92);
+  --line:rgba(255,255,255,.10);--text:#f8f8f6;--muted:#91918d;
+  --purple:#f0f0ed;--purple2:#d7d7d3;--green:#d9d9d5;--red:#bdbdb8;--blue:#e8e8e5;
   --font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --display:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Space Grotesk",Inter,ui-sans-serif,system-ui,sans-serif;
 }
-html,body { background:#080808!important; color:#f5f5f5!important; }
-body { font-family:var(--font)!important; }
-a { color:#ededed!important; }
-.ambient { background:#ffffff!important; opacity:.035!important; }
-.sidebar,.topbar,.panel,.card,.stat-card,.feature-card,.key-card,.table-wrap,
-[class*="panel"],[class*="card"] {
-  background-color:rgba(17,17,17,.96)!important;
-  border-color:var(--line)!important;
-  box-shadow:0 14px 42px rgba(0,0,0,.28)!important;
-}
-h1,h2,h3,h4,strong,b { color:#fff; }
-p,label,small,.muted,.lede,.description { color:#b5b5b5; }
-button,.btn,.btn-primary,input[type="submit"] {
-  background:#f2f2f2!important; color:#090909!important;
-  border:1px solid #f2f2f2!important; border-radius:10px!important;
-  font-weight:700!important; transition:transform .15s ease,background .15s ease!important;
-}
-button:hover,.btn:hover,.btn-primary:hover,input[type="submit"]:hover {
-  background:#d8d8d8!important; transform:translateY(-1px);
-}
-.btn-secondary,.btn-ghost,.icon-btn,button.secondary {
-  background:#191919!important; color:#f4f4f4!important;
-  border:1px solid #444!important;
-}
-input,select,textarea {
-  background:#0d0d0d!important; color:#f5f5f5!important;
-  border:1px solid #454545!important; border-radius:10px!important;
-}
-input:focus,select:focus,textarea:focus {
-  outline:none!important; border-color:#eee!important;
-  box-shadow:0 0 0 3px rgba(255,255,255,.10)!important;
-}
-table { color:#eee!important; border-color:#333!important; }
-th { background:#191919!important; color:#ddd!important; }
-td { border-color:#292929!important; }
-tr:hover td { background:rgba(255,255,255,.035)!important; }
-.badge,.pill,.status,.status-pill {
-  background:#252525!important; color:#f0f0f0!important;
-  border:1px solid #444!important;
-}
-hr { border-color:#292929!important; }
-::selection { background:#eee!important; color:#080808!important; }
-@media(max-width:760px) {
-  .topbar { gap:12px!important; flex-wrap:wrap!important; }
-  table { min-width:640px; }
-}
+html,body{background:#030303!important;color:#f8f8f6!important}
 </style>
 """
             if "</head>" in page.lower():
@@ -158,6 +112,29 @@ hr { border-color:#292929!important; }
                 page = re.sub(r"</body>", lambda _m: theme + "</body>", page, count=1, flags=re.IGNORECASE)
             else:
                 page = theme + page
+            # Apply the Aki atmosphere to every HTML route, including login and admin subpages.
+            if "aki-global-backdrop" not in page:
+                backdrop = (
+                    '<div class="aki-global-backdrop" aria-hidden="true">'
+                    '<canvas id="aki-space"></canvas><span class="aki-watermark">AKI</span>'
+                    '<i class="aki-fog aki-fog-a"></i><i class="aki-fog aki-fog-b"></i><i class="aki-fog aki-fog-c"></i>'
+                    '<span class="aki-grain"></span><span class="aki-scanline"></span></div>'
+                )
+                page = re.sub(r"(<body\\b[^>]*>)", lambda match: match.group(1) + backdrop, page, count=1, flags=re.IGNORECASE)
+
+            global_css = '<link rel="stylesheet" href="' + url_for("static", filename="aki-global-theme.css") + '?v=20261127">'
+            global_js = '<script defer src="' + url_for("static", filename="aki-global-effects.js") + '?v=20261127"></script>'
+            if "aki-global-theme.css" not in page:
+                if "</head>" in page.lower():
+                    page = re.sub(r"</head>", lambda _m: global_css + "</head>", page, count=1, flags=re.IGNORECASE)
+                else:
+                    page = global_css + page
+            if "aki-global-effects.js" not in page:
+                if "</body>" in page.lower():
+                    page = re.sub(r"</body>", lambda _m: global_js + "</body>", page, count=1, flags=re.IGNORECASE)
+                else:
+                    page += global_js
+
             response.set_data(page)
         return response
 
